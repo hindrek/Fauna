@@ -1,0 +1,66 @@
+---
+title: "Fauna season 2017"
+author: "Hindrek Teder"
+date: "October 21, 2017"
+output:
+  github_document: default
+  html_notebook: default
+---
+
+## Libraries
+```{r}
+library(tidyverse)
+library(readxl)
+library(stringr)
+```
+
+## Data transformation
+```{r}
+clean <- function(df) {
+  df %>%
+    filter(!is.na(`Vastaja nimi`)) %>%
+    select(-Timestamp, -`Vastaja nimi`) %>%
+    gather(key = "player", value = "score") %>%
+    mutate(player = str_sub(player, start = 12, end = -2)) %>%
+    mutate(player = str_replace(player, pattern = "\\(.*\\)", replacement = "")) %>%
+    mutate(player = str_trim(player))
+}
+
+path <- "scores2017.xlsx"
+sheets <- rev(excel_sheets(path))  # order chronologically
+df <- data_frame()
+for(i in 1:length(sheets)) {
+  tmp <- read_xlsx(path, sheets[i]) %>%
+    clean() %>%
+    mutate(game = i)  # add game
+  df <- bind_rows(df, tmp)
+}
+```
+
+## Descriptive analysis
+```{r}
+season_summary <- df %>%
+  group_by(player) %>%
+  summarise(mean_score = mean(score, na.rm = T)) %>%
+  arrange(desc(mean_score))
+season_summary
+
+game_summary <- df %>%
+  group_by(player, game) %>%
+  summarise(mean_score = mean(score, na.rm = T))
+game_summary
+```
+
+## Data visualisation
+```{r}
+ggplot(season_summary, aes(x = player, y = mean_score)) +
+  geom_col() +
+  coord_flip() +
+  ggtitle("Player mean score 2017")
+
+ggplot(game_summary, aes(x = game, y = mean_score)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(facets = "player") +
+  ggtitle("Player mean score by game 2017")
+```

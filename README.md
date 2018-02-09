@@ -1,2 +1,2 @@
 # fauna
-Tartu Ülikool Fauna
+Tartu Ülikool Fauna season statistics.
